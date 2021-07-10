@@ -12,6 +12,5 @@ router.patch('/edit-product', authorizers.isLoggedIn, authorizers.isMyProduct, u
 router.delete('/delete-product', authorizers.isLoggedIn, authorizers.isMyProduct, userController.deleteProduct);
 router.get('/:username/profile', authorizers.getUserInfo, userController.getProfile);
 router.get('/:username/my-products', userController.getMyProducts);
-router.get('/:username/my-orders', authorizers.isLoggedIn, authorizers.isMyProfile, userController.getMyOrders);
 
 module.exports = router;

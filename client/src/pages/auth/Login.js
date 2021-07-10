@@ -1,8 +1,9 @@
 import React, {useState} from 'react'
 import {Redirect} from 'react-router-dom';
 
-import Input from '../../components/Input';
-import Button from '../../components/Button';
+import Header from '../../components/UI/Header';
+import Input from '../../components/UI/Input';
+import Button from '../../components/Buttons/Button';
 
 const Login = (props) => {
     const [email, setEmail] = useState(null);
@@ -42,7 +43,7 @@ const Login = (props) => {
 
     return (
         <>
-            <h2>Login</h2>
+            <Header main>Login</Header>
             {errorMessages.length > 0 ? 
             <ul>
                 {errorMessages.map(message => {
@@ -52,7 +53,7 @@ const Login = (props) => {
             <div>
                 <Input type="email" label="Email" id="email" onChange={(e) => setEmail(e.target.value)}/>
                 <Input type="password" label="Password" id="password" onChange={(e) => setPassword(e.target.value)} />            
-                <Button default onClick={() => loginHandler()}>Login</Button>
+                <Button auth onClick={() => loginHandler()}>Login</Button>
             </div>
             { redirectAfterLogin ? <Redirect to="/" /> : null}
         </>

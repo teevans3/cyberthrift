@@ -1,4 +1,4 @@
-const db = require('../util/database');
+const db = require('../util/database').knex;
 
 module.exports = class User {
     constructor(username, email, password) {
@@ -8,21 +8,22 @@ module.exports = class User {
     }
 
     save() {
-        return db.execute(
-            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
-            [this.username, this.email, this.password]
-        );
+        return db.insert({
+            username: this.username,
+            email: this.email,
+            password: this.password
+        }).into('users');
     }
 
     static fetchByEmail(emailOfUser) {
-        return db.execute('SELECT * FROM users WHERE users.email = ?', [emailOfUser]);
+        return db.select().table('users').where({ email: emailOfUser }).first();
     }
 
     static fetchById(idOfUser) {
-        return db.execute('SELECT * FROM users WHERE users.id = ?', [idOfUser]);
+        return db.select().table('users').where({ id: idOfUser }).first();
     }
 
     static fetchByUsername(nameOfUser) {
-        return db.execute('SELECT * FROM users WHERE users.username = ?', [nameOfUser]);
+        return db.select().table('users').where({ username: nameOfUser }).first();
     }
 }

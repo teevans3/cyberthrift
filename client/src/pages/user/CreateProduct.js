@@ -2,9 +2,11 @@ import React, {useState, useEffect} from 'react'
 import {Redirect} from 'react-router-dom';
 import styled from 'styled-components';
 
-import Input from '../../components/Input';
-import Button from '../../components/Button';
+import Header from '../../components/UI/Header';
+import Input from '../../components/UI/Input';
+import Button from '../../components/Buttons/Button';
 import Error from '../UI/error';
+import ErrorMessages from '../../components/UI/ErrorMessages';
 
 const CreateProduct = (props) => {
 
@@ -69,9 +71,6 @@ const CreateProduct = (props) => {
             body: formData
         })
             .then(res => {
-                if (res.status !== 201) {
-                    props.setError({status: true, message: 'Something went wrong - try creating a product again, later.'});
-                }
                 return res.json();
             })
             .then(resData => {
@@ -98,13 +97,10 @@ const CreateProduct = (props) => {
     if (!props.error.status) {
         return (
             <div>
-            <h2>Create New Product</h2>
+            <Header main>Create New Product</Header>
                 {errorMessages.length > 0 ? 
-                <ul>
-                    {errorMessages.map(message => {
-                        return (<li>{message}</li>)
-                    })}
-                </ul> : null}
+                    <ErrorMessages errorMessages={errorMessages} setErrorMessages={() => setErrorMessages()}/>
+                 : null}
                 <Input type="text" label="Name" id="name" onChange={(e) => setName(e.target.value)}/>
                 <Input type="number" label="Price" id="price" step="0.01" onChange={(e) => setPrice(e.target.value)}/>
                 <ProductTypesContainer>
@@ -119,7 +115,7 @@ const CreateProduct = (props) => {
                 <Input type="text" label="Size" id="size" onChange={(e) => setSize(e.target.value)}/>
                 <Input type="file" label="Image" id="image" onChange={(e) => setImage(e.target.files[0])}/>
                 <Input type="textarea" label="Description" id="description" onChange={(e) => setDescription(e.target.value)}/>
-                <Button default onClick={() => addProductHandler()}>Create</Button>
+                <Button create onClick={() => addProductHandler()}>Create</Button>
                 { redirectAfterCreation ? <Redirect to={`${seller}/my-products`} /> : null}
             </div>
         )

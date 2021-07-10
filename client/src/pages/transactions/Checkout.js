@@ -1,10 +1,17 @@
 import React, {useState, useEffect} from 'react'
 import {useParams, Redirect} from 'react-router-dom';
-import styled from 'styled-components'
 
-import ProductImage from '../../components/ProductImage';
-import Button from '../../components/Button';
-import Input from '../../components/Input';
+import Header from '../../components/UI/Header';
+import Divider from '../../components/UI/Divider';
+import ProductContainer from '../../components/Product/ProductContainer';
+import ProductDetails from '../../components/Product/ProductDetails';
+import ProductImage from '../../components/Product/ProductImage';
+import ProductInfo from '../../components/Product/ProductInfo';
+import ProductInfoTitle from '../../components/Product/ProductInfoTitle';
+import ProductInfoName from '../../components/Product/ProductInfoName';
+import Button from '../../components/Buttons/Button';
+import SoldOut from '../../components/UI/SoldOut';
+import Input from '../../components/UI/Input';
 import Error from '../UI/error';
 
 const Checkout = (props) => {
@@ -29,13 +36,16 @@ const Checkout = (props) => {
                     return props.setError({status: true, message: 'You cannot buy this product, it does not exist!'});
                 }
                 if (res.status === 401) {
-                    return props.setError({status: true, message: 'You must be logged in to buy this product.'});
+                    return props.setError({status: true, type: 'authorization', message: 'You must be logged in to buy this product.'});
                 }
                 if (res.status !== 200) {
                     return props.setError({status: true, message: 'Something went wrong - try buying this product again, later.'});
                 }
                 res.json()
                     .then(resData => {
+                        if (JSON.parse(resData.product).sold) {
+                            return props.setError({status: true, message: 'This product has already been purchased.'})
+                        }
                         return setProductInfo(JSON.parse(resData.product));
                     })
             })
@@ -45,7 +55,7 @@ const Checkout = (props) => {
             })
         // cleanup: on unmount, return error state to false - is this how it works????
         return () => {
-            props.setError({status: false, message: ''});
+            props.setError({status: false, type: '', message: ''});
         }
     }, [])
 
@@ -68,7 +78,7 @@ const Checkout = (props) => {
         })
             .then(res => {
                 if (res.status === 401) {
-                    return props.setError({status: true, message: 'You must be logged in to buy this product.'});
+                    return props.setError({status: true, type: 'authorization', message: 'You must be logged in to buy this product.'});
                 }
                 res.json()
                     .then(resData => {
@@ -84,60 +94,52 @@ const Checkout = (props) => {
             })
         // cleanup: on unmount, return error state to false - is this how it works????
         return () => {
-            props.setError({status: false, message: ''});
+            props.setError({status: false, type: '', message: ''});
         }
     }
 
     if (!props.error.status) {
         return (
-            <CheckoutContainer>
-                <h2>Check Out</h2>
-                <ProductImage backgroundImage={`url('http://localhost:8080/${productInfo.image}')`} />
+            <>
+            <Header main>Check Out</Header>
+            <ProductContainer>
                 {errorMessages.length > 0 ? 
                 <ul>
                     {errorMessages.map(message => {
                         return (<li>{message}</li>)
                     })}
                 </ul> : null}
-                <div>
-                    <p>Item: {productInfo.name}</p>
-                    <p>Seller: {productInfo.sellerId}</p>
-                    <p>Product Type: {productInfo.productTypeId}</p>
-                    <p>Image: {productInfo.image}</p>
-                    <p>Price: ${productInfo.price}</p>
-                <p>Item Size: {productInfo.size}</p>
-                </div>
-                {productInfo.sold ?
-                    <p>SOLD OUT</p> : 
-                    <div>
-                        <Input type="text" label="Card Number" id="cardNumber" onChange={(e) => setCardNumber(e.target.value)}/>
-                        {/* <label for="cardNumber">Card Number</label>
-                        <input type="text" id="cardNumber" onChange={(e) => setCardNumber(e.target.value)} /> */}
-                        <Input type="text" label="Expiration Date (format: MMYY" id="cardExpiration" onChange={(e) => setCardExpiration(e.target.value)}/>
-                        {/* <label for="cardExpiration">Expiration Date (format: MMYY)</label>
-                        <input type="text" id="cardExpiration" min="4" max="4" onChange={(e) => setCardExpiration(e.target.value)} /> */}
-                        <Input type="text" label="SVC Number" id="svcNumber" onChange={(e) => setSvcNumber(e.target.value)}/>
-                        {/* <label for="svcNumber">SVC Number</label>
-                        <input type="text" id="svcNumber" min="3" max="3" onChange={(e) => setSvcNumber(e.target.value)} /> */}
-                        <Button default onClick={() => checkoutHandler()}>Check Out</Button>
-                    </div> 
-                }
-                
+                <ProductImage backgroundImage={`url('http://localhost:8080/${productInfo.image}')`} />
+                <ProductDetails>
+                    {productInfo.sold ?
+                        <SoldOut /> : 
+                        <>
+                            <ProductInfoName>{productInfo.name}</ProductInfoName>
+                            <ProductInfoTitle>Price</ProductInfoTitle>
+                            <ProductInfo>${productInfo.price}</ProductInfo>
+                            <ProductInfoTitle>Size</ProductInfoTitle>
+                            <ProductInfo>{productInfo.size}</ProductInfo>
+                            <Divider />
+                            <Input type="text" label="Card Number" id="cardNumber" onChange={(e) => setCardNumber(e.target.value)}/>
+                            {/* <label for="cardNumber">Card Number</label>
+                            <input type="text" id="cardNumber" onChange={(e) => setCardNumber(e.target.value)} /> */}
+                            <Input type="text" label="Expiration Date (format: MMYY" id="cardExpiration" onChange={(e) => setCardExpiration(e.target.value)}/>
+                            {/* <label for="cardExpiration">Expiration Date (format: MMYY)</label>
+                            <input type="text" id="cardExpiration" min="4" max="4" onChange={(e) => setCardExpiration(e.target.value)} /> */}
+                            <Input type="text" label="SVC Number" id="svcNumber" onChange={(e) => setSvcNumber(e.target.value)}/>
+                            {/* <label for="svcNumber">SVC Number</label>
+                            <input type="text" id="svcNumber" min="3" max="3" onChange={(e) => setSvcNumber(e.target.value)} /> */}
+                            <Button checkout onClick={() => checkoutHandler()}>Check Out</Button>
+                        </> 
+                    }
+                </ProductDetails>
                 {redirectAfterCheckout ? <Redirect to={{ pathname: '/thank-you', state: {productInfo: productInfo} }} /> : null}
-            </CheckoutContainer>
+            </ProductContainer>
+            </>
         )
     } else {
-        return <Error message={props.error.message} />
+        return <Error message={props.error.message} type={props.error.type} />
     }
 }
 
 export default Checkout;
-
-const CheckoutContainer = styled.div`
-    padding: 3rem 0;
-    margin: auto;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-`

@@ -3,12 +3,19 @@ const ProductType = require('../models/productType');
 
 exports.getProductsByType = async (typeOfProduct) => {
     try {
-        const [[productType]] = await ProductType.fetchByTypeName(typeOfProduct);
-        const [products] = await Product.fetchByTypeId(productType.id);
+        const productType = await ProductType.fetchByTypeName(typeOfProduct);
+        console.log(productType);
+        if (!productType) {
+            console.log('no product type');
+            const err = new Error
+            err.status = 404;
+            throw err;
+        }
+        const products = await Product.fetchByTypeId(productType.id);
         return products;
     } catch(err) {
-        // TODO
         console.log(err);
+        throw err;
     }
 }
 

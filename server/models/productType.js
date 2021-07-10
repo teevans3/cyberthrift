@@ -1,16 +1,16 @@
-const db = require('../util/database');
+const db = require('../util/database').knex;
 
 module.exports = class ProductTypes {
 
     static fetchById(idOfProductType) {
-        return db.execute('SELECT * FROM productTypes WHERE productTypes.id = ?', [idOfProductType])
+        return db.select().table('productTypes').where({ id: idOfProductType }).first();
     }
 
     static fetchByTypeName(nameOfProductType) {
-        return db.execute('SELECT * FROM productTypes WHERE productTypes.type = ?', [nameOfProductType])
+        return db.select().table('productTypes').where({ type: nameOfProductType}).first();
     }
 
     static fetchAll() {
-        return db.execute('SELECT * FROM productTypes');
+        return db.select().table('productTypes');
     }
 }

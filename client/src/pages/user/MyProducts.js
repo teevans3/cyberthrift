@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react'
 import {Link, useParams} from 'react-router-dom';
 import styled from 'styled-components';
 
-import ProductCard from '../../components/ProductCard';
+import Header from '../../components/UI/Header';
+import PageWrapper from '../../components/Layout/PageWrapper';
+import ProductCard from '../../components/Product/ProductCard';
 import Error from '../UI/error';
 
 const MyProducts = (props) => {
@@ -41,8 +43,8 @@ const MyProducts = (props) => {
 
     if (!props.error.status) {
         return (
-            <div>
-                <h2>{profileName}'s Products</h2>
+            <PageWrapper>
+                <Header>{profileName}'s Products</Header>
                 <ProductsContainer>
                     {/* need to add a loader/spinner */}
                     {(products.length < 1) ? <div>This user has no products yet.</div> :
@@ -50,7 +52,7 @@ const MyProducts = (props) => {
                         return <ProductCard product={product} />
                     })}
                 </ProductsContainer>
-            </div>
+            </PageWrapper>
         )
     } else {
         return <Error message={props.error.message} />

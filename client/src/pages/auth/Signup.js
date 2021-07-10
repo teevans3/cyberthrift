@@ -1,8 +1,9 @@
 import React, {useState, useEffect} from 'react'
-import {Redirect} from 'react-router-dom';
+import {Link, Redirect} from 'react-router-dom';
 
-import Input from '../../components/Input';
-import Button from '../../components/Button';
+import Header from '../../components/UI/Header';
+import Input from '../../components/UI/Input';
+import Button from '../../components/Buttons/Button';
 
 const Signup = () => {
     const [username, setUsername] = useState(null);
@@ -42,7 +43,7 @@ const Signup = () => {
     }
     return (
         <>
-            <h2>Signup</h2>
+            <Header main>Signup</Header>
             {errorMessages.length > 0 ? 
             <ul>
                 {errorMessages.map(message => {
@@ -54,8 +55,9 @@ const Signup = () => {
                 <Input type="email" label="Email" id="email" onChange={(e) => setEmail(e.target.value)}/>
                 <Input type="password" label="Password" id="password" onChange={(e) => setPassword(e.target.value)}/>
                 <Input type="password" label="Confirm Password" id="confirmPassword" onChange={(e) => setConfirmPassword(e.target.value)}/>
-                <Button default onClick={() => signupHandler()}>Signup</Button>
+                <Button auth onClick={() => signupHandler()}>Signup</Button>
             </div>
+            <p>Already have an account? <Link to="/login" style={{color: 'red', textDecoration: 'none'}}>Login</Link></p>
             { redirectAfterSignup ? <Redirect to="/login" /> : null}
         </>
     )

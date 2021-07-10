@@ -1,10 +1,10 @@
-import React, {useState,useEffect}  from 'react'
+import React, {useState, useEffect}  from 'react'
 import {Redirect} from 'react-router-dom';
 import styled from 'styled-components';
 
-import Input from './Input';
-import Button from './Button';
-import Error from '../pages/UI/error';
+import Input from './UI/Input';
+import Button from './Buttons/Button';
+import ErrorMessages from './UI/ErrorMessages';
 
 const EditProductModal = (props) => {
 
@@ -16,7 +16,8 @@ const EditProductModal = (props) => {
     const [oldImage, setOldImage] = useState(props.product.image);
     const [newImage, setNewImage] = useState(null);
     const [description, setDescription] = useState(props.product.description);
-    const [soldOut, setSoldOut] = useState(props.product.sold);
+    const [soldOut, setSoldOut] = useState(props.product.sold === 0 ? false : true);
+    const [errorMessages, setErrorMessages] = useState([])
     const [redirectAfterCreation, setRedirectAfterCreation] = useState(false);
 
     const editProductHandler = () => {
@@ -50,7 +51,13 @@ const EditProductModal = (props) => {
                         message: 'You cannot edit other people\'s products!'
                     });
                 } else {
-                    setRedirectAfterCreation(true);
+                    res.json()
+                        .then(resData => {
+                            if (resData.errors.length > 0) {
+                                return setErrorMessages(resData.errors);
+                            }
+                            return setRedirectAfterCreation(true);
+                        });
                 }
             })
             .catch(err => {
@@ -96,9 +103,12 @@ const EditProductModal = (props) => {
         return (
             <EditModalContainer>
                 <Button exit onClick={props.setEditMode}>X</Button>
+                {errorMessages.length > 0 ? 
+                    <ErrorMessages errorMessages={errorMessages} setErrorMessages={() => setErrorMessages()}/>
+                 : null}
                 <SoldOutContainer>
                     <label for="soldOut">Sold</label>
-                    <input type="checkbox" name="soldOut" id="soldOut" value={soldOut} onChange={(e) => setSoldOut(!e.target.value)} checked={soldOut === "1" ? true : null}/>
+                    <input type="checkbox" name="soldOut" id="soldOut" value={soldOut} onChange={() => setSoldOut(!soldOut)} checked={soldOut ? true : false}/>
                 </SoldOutContainer>
                 <Input type="text" label="Name" id="name" value={name} onChange={(e) => setName(e.target.value)}/>
                 <Input type="number" step="0.01" label="Price" id="price" value={[price]}  onChange={(e) => setPrice(e.target.value)}/>
@@ -112,11 +122,11 @@ const EditProductModal = (props) => {
                     })}
                 </ProductTypesContainer>
                 <Input type="text" label="Size" id="size" value={size} onChange={(e) => setSize(e.target.value)}/>
-                <Input type="file" label="Image" id="image" onChange={(e) => setNewImage(e.target.files[0])}/>
+                <Input type="file" label="New Image" id="image" onChange={(e) => setNewImage(e.target.files[0])}/>
                 <Input type="textarea" label="Description" id="description" value={description} onChange={(e) => setDescription(e.target.value)}/>
                 <ButtonsContainer>
-                    <Button default onClick={() => editProductHandler()}>Update</Button>
-                    <Button default onClick={() => deleteProductHandler()}>Delete</Button>
+                    <Button update onClick={() => editProductHandler()}>Update</Button>
+                    <Button update delete onClick={() => deleteProductHandler()}>Delete</Button>
                 </ButtonsContainer>
                     { redirectAfterCreation ? <Redirect to={`/${props.seller.username}/my-products`} /> : null}
             </EditModalContainer>
@@ -127,14 +137,17 @@ export default EditProductModal;
 
 const EditModalContainer = styled.div`
     width: 30rem;
-    margin: 0 auto;
-    background-color: gray;
     color: white;
+    background: linear-gradient(to top, black 60%, gray);
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
+    border: 0.1rem outset gray;
 
-
+    @media (max-width: 56.188rem) {
+        margin: auto;
+        width: 40rem;
+    }
 `
 
 

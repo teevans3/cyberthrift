@@ -14,14 +14,14 @@ exports.postSignup = async (req, res, next) => {
     const errors = [];
 
     // form validation
-    const [[existingUsername]] = await User.fetchByUsername(username);
+    const existingUsername = await User.fetchByUsername(username);
     if (existingUsername) {
         errors.push("Username is taken.");
     }
     if (username.length < 5) {
         errors.push("Username must be at least 5 characters long.")
     }
-    const [[existingEmail]] = await User.fetchByEmail(email);
+    const existingEmail = await User.fetchByEmail(email);
     if (existingEmail) {
         errors.push("Email is taken.");
     }
@@ -65,7 +65,7 @@ exports.postLogin = async (req, res, next) => {
     const errors = [];
 
     try {
-        const [[user]] = await User.fetchByEmail(email);
+        const user = await User.fetchByEmail(email);
         if (!user) {
             errors.push("No account exists for this user.");
         } else {

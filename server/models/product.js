@@ -1,4 +1,4 @@
-const db = require('../util/database');
+const db = require('../util/database').knex;
 
 module.exports = class Product {
     constructor(name, productTypeId, price, size, sellerId, image, description) {
@@ -14,40 +14,65 @@ module.exports = class Product {
     }
 
     save() {
-        return db.execute(
-            'INSERT INTO products (name, productTypeId, price, size, sellerId, image, description, sold) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [this.name, this.productTypeId, this.price, this.size, this.sellerId, this.image, this.description, this.sold]
-        );
+        return db.insert({
+            name: this.name,
+            productTypeId: this.productTypeId,
+            price: this.price,
+            size: this.size,
+            sellerId: this.sellerId,
+            image: this.image,
+            description: this.description,
+            sold: this.sold
+        }).into('products');
     }
 
     static fetchAll() {
-        return db.execute('SELECT * FROM products');
+        return db.select().table('products');
     }
 
     static fetchByTypeId(typeOfProductId) {
-        return db.execute('SELECT * FROM products WHERE products.productTypeId = ?', [typeOfProductId]);
+        return db.select().table('products').where({ productTypeId: typeOfProductId});
     }
 
-    static fetchBySeller(idOfSeller) {
-        return db.execute('SELECT * FROM products WHERE products.sellerId = ?', [idOfSeller]);
+    static async fetchSomeBySeller(idOfSeller) {
+        const limitedProducts = await db.select().table('products').where({ sellerId: idOfSeller }).limit(6);
+        let moreProducts = false;
+        const allProducts = await this.fetchAllBySeller(idOfSeller);
+        if (limitedProducts.length < allProducts.length) {
+            moreProducts = true;
+        }
+        return {
+            products: limitedProducts,
+            moreProducts: moreProducts
+        }
+    }
+
+    static fetchAllBySeller(idOfSeller) {
+        return db.select().table('products').where({ sellerId: idOfSeller });
     }
 
     static fetchOne(idOfProduct) {
-        return db.execute('SELECT * FROM products WHERE products.id = ?', [idOfProduct]);
+        return db.select().table('products').where({ id: idOfProduct }).first();
     }
 
     static soldOut(idOfProduct) {
-        return db.execute('UPDATE products SET sold = ? WHERE products.id = ?', [true, idOfProduct]);
+        // return db.execute('UPDATE products SET sold = ? WHERE products.id = ?', [true, idOfProduct]);
+        return db.update({ sold: true }).table('products').where({ id: idOfProduct });
     }
 
     static update(nameOfProduct, productTypeIdOfProduct, priceOfProduct, sizeOfProduct, imageOfProduct, descriptionOfProduct, soldOfProduct, idOfProduct) {
-        return db.execute(
-            'UPDATE products SET name = ?, productTypeId = ?, price = ?, size = ?, image = ?, description = ?, sold = ? WHERE products.id = ?',
-            [nameOfProduct, productTypeIdOfProduct, priceOfProduct, sizeOfProduct, imageOfProduct, descriptionOfProduct, soldOfProduct, idOfProduct]
-        );
+        return db.update({
+            name: nameOfProduct,
+            productTypeId: productTypeIdOfProduct,
+            price: priceOfProduct,
+            size: sizeOfProduct,
+            image: imageOfProduct,
+            description: descriptionOfProduct,
+            sold: soldOfProduct,
+        }).table('products').where({ id: idOfProduct })
     }
 
     static delete(idOfProduct) {
-        return db.execute('DELETE FROM products WHERE id = ?', [idOfProduct])
+        return db('products').where({ id: idOfProduct }).del();
     }
 }

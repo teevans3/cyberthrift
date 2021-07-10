@@ -1,9 +1,9 @@
 
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {BrowserRouter, Route, Switch, Redirect} from 'react-router-dom';
 
 import './App.css';
-import Layout from './components/Layout';
+import Layout from './components/Layout/Layout';
 import Index from './pages/store/Index';
 import Navigation from './pages/Navigation';
 import ProductType from './pages/store/ProductType';
@@ -13,7 +13,6 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import Profile from './pages/user/Profile';
 import MyProducts from './pages/user/MyProducts';
-import MyOrders from './pages/user/MyOrders';
 import CreateProduct from './pages/user/CreateProduct';
 import ErrorPage from './pages/UI/error';
 import ThankYouPage from './pages/UI/thank-you';
@@ -28,11 +27,15 @@ function App() {
   // before setting state of token; also add expiration
 
   const [token, setToken] = useState(fetchedToken);
-  const [error, setError] = useState({status: false, message: ''});
+  const [error, setError] = useState({status: false, type: '', message: ''});
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [redirectToIndex, setRedirectToIndex] = useState(false);
+  const [toggleMenu, setToggleMenu] = useState(false);
 
+  useEffect(() => {
+    console.log(toggleMenu);
+  }, [toggleMenu])
 
   // see if user is already logged in
   // --> is this the best way to do this?
@@ -62,6 +65,18 @@ function App() {
 
   }, [token])
 
+  let menuRef = useRef()
+  // close nav menu if user clicks anywhere outside of nav
+  useEffect(() => {
+    console.log(menuRef.current);
+    document.addEventListener("mousedown", (event) => {
+      if (!menuRef.current.contains(event.target)) {
+        setToggleMenu(false);
+      }
+    })
+  }, [])
+
+
   const logoutHandler = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
@@ -74,7 +89,7 @@ function App() {
   return (
     <div className="App">
       <BrowserRouter>
-        <Navigation isLoggedIn={isLoggedIn} username={username} logoutHandler={() => logoutHandler()}/>
+        <Navigation setToggleMenu={setToggleMenu} toggleMenu={toggleMenu} menuRef={menuRef} isLoggedIn={isLoggedIn} username={username} logoutHandler={() => logoutHandler()}/>
         <Layout>
           {redirectToIndex ? <Redirect to="/" /> : null}
           <Switch>
@@ -87,9 +102,8 @@ function App() {
             {/* using 'requestedName' because user could put any string in url
               ... does not guarantee that it is a user that exists!!
             */}
-            <Route path="/:requestedName/profile" render={() => <Profile error={error} setError={setError}/>}/>
+            <Route path="/:requestedName/profile" render={() => <Profile error={error} setError={setError} logoutHandler={() => logoutHandler()}/>}/>
             <Route path="/:requestedName/my-products" render={() => <MyProducts error={error} setError={setError} />}/>
-            <Route path="/:requestedName/my-orders" render={() => <MyOrders error={error} setError={setError} />}/>
             <Route path="/:productTypeName/:productId/checkout" render={() => <Checkout error={error} setError={setError}/>}/>
             <Route path="/:productTypeName/:productId" render={() => <Product error={error} setError={(e) => setError(e)}/>}/>
             <Route path="/:productTypeName" render={(props) => <ProductType {...props} error={error} setError={setError} />} />

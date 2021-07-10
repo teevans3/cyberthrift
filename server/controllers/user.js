@@ -8,7 +8,7 @@ const Order = require('../models/order');
 const helpers = require('../util/helpers');
 
 exports.getProfile = async (req, res, next) => {
-    const [[user]] = await User.fetchByUsername(req.params.username);
+    const user = await User.fetchByUsername(req.params.username);
     if (!user) {
         return res.status(404).json({
             message: "This user does not exist.",
@@ -16,10 +16,35 @@ exports.getProfile = async (req, res, next) => {
             username: null
         })
     }
+    // fetch first 5 products
+    const productsObj = await Product.fetchSomeBySeller(user.id);
+    const products = productsObj.products;
+
+    // fetch first 5 orders
+    const ordersObj = await Order.fetchSomeByBuyer(user.id);
+    let orders = ordersObj.orders;
+    if (!orders) {
+        orders = [];
+    }    
+    const productList = await Promise.all(orders.map(async (order) => {
+        const product = await Product.fetchOne(order.productId);
+        return product;
+    }));
+    const orderList = productList.map((p, index) => {
+        return {
+            ...p,
+            orderId: orders[index].id
+        }
+    });
+
     return res.status(200).json({
         message: "Profile for user found!",
-        profileName: req.params.username,
-        username: req.username
+        profileName: user.username,
+        username: req.username,
+        profileProducts: products,
+        profileOrders: orderList,
+        moreProducts: productsObj.moreProducts,
+        moreOrders: ordersObj.moreOrders
     })
 }
 
@@ -27,14 +52,14 @@ exports.getMyProducts = async (req, res, next) => {
     // TODO get actual profile's username
     const username = req.params.username;
     try {
-        const [[user]] = await User.fetchByUsername(username);
+        const user = await User.fetchByUsername(username);
         if (!user) {
             return res.status(404).json({
                 message: "This user does not exist, thus has no products."
             })
         }
-        const [products] = await Product.fetchBySeller(user.id);
-        const [productTypes] = await ProductType.fetchAll();
+        const products = await Product.fetchAllBySeller(user.id);
+        const productTypes = await ProductType.fetchAll();
         const updatedProducts = helpers.updateProductsList(products, productTypes);
         return res.status(200).json({
             message: "User's products fetched successfully!",
@@ -50,7 +75,7 @@ exports.getMyProducts = async (req, res, next) => {
 
 exports.getCreateProduct = async (req, res, next) => {
     try {
-        const [productTypes] = await ProductType.fetchAll();
+        const productTypes = await ProductType.fetchAll();
         return res.status(200).json({
             productTypes: JSON.stringify(productTypes),
         })
@@ -61,7 +86,6 @@ exports.getCreateProduct = async (req, res, next) => {
 }
 
 exports.postCreateProduct = async (req, res, next) => {
-
     const name = JSON.parse(req.body.name);
     const productTypeId = JSON.parse(req.body.productTypeId);
     const price = JSON.parse(req.body.price);
@@ -69,6 +93,7 @@ exports.postCreateProduct = async (req, res, next) => {
     const imageFile = req.file;
     const description = JSON.parse(req.body.description);
 
+    // form validation
     const errors = [];
 
     if (!name || name.length < 3) {
@@ -91,7 +116,7 @@ exports.postCreateProduct = async (req, res, next) => {
     }
 
     if (errors.length > 0) {
-        return res.status(400).json({
+        return res.status(422).json({
             message: "Invalid product information",
             errors: errors
         })
@@ -107,9 +132,8 @@ exports.postCreateProduct = async (req, res, next) => {
             imageFile.path,
             description
         );
-        console.log(product);
         await product.save()
-        const [[creator]] = await User.fetchById(req.userId);
+        const creator = await User.fetchById(req.userId);
         return res.status(201).json({
             message: 'Product successfully created!',
             sellerName: creator.username,
@@ -123,27 +147,68 @@ exports.postCreateProduct = async (req, res, next) => {
 }
 
 exports.editProduct = async (req, res, next) => {
-    // if there's a new image, replace old image with it
+    const name = req.body.name;
+    const productTypeId = req.body.productTypeId;
+    const price = req.body.price;
+    const size = req.body.size;
     let imagePath = req.body.oldImage;
+    const description = req.body.description;
+    let soldOut = 0;
+    const productId = req.body.productId;
+
+    // if there's a new image, replace old image with it
     if (req.file) {
         const filePath = path.join(__dirname, '..', imagePath);
         fs.unlink(filePath, err => console.log(err));
         imagePath = req.file.path;
     }
 
+    // convert false/true to 0/1
+    if (JSON.parse(req.body.soldOut) === true) {
+        soldOut = 1;
+    }
+
+    // form validation
+    const errors = [];
+
+    if (!name || name.length < 3) {
+        errors.push("Name must be at least 3 characters long.")
+    }
+    if (!price || price.length < 1) {
+        errors.push("Please enter a valid price.");
+    }
+    if (!productTypeId) {
+        errors.push("Select a product type.");
+    }
+    if (!size || size.length < 1) {
+        errors.push("Please add an appropriate size.");
+    }
+
+    if (!description || description.length < 5) {
+        errors.push("Provide some description, with at least 5 characters.");
+    }
+
+    if (errors.length > 0) {
+        return res.status(422).json({
+            message: "Invalid product information",
+            errors: errors
+        })
+    }
+
     try {
         await Product.update(
-            req.body.name,
-            req.body.productTypeId,
-            req.body.price,
-            req.body.size,
+            name,
+            productTypeId,
+            price,
+            size,
             imagePath,
-            req.body.description,
-            req.body.soldOut,
-            req.body.productId
+            description,
+            soldOut,
+            productId
         )
         return res.status(201).json({
             message: 'Product successfully updated!',
+            errors: []
         })
     } catch(err) {
         console.log(err);
@@ -163,34 +228,6 @@ exports.deleteProduct = async (req, res, next) => {
     }
 }
 
-exports.getMyOrders = async (req, res, next) => {
-    try {
-        const [[user]] = await User.fetchByUsername(req.params.username);
-        if (!user) {
-            return res.status(404).json({
-                message: "This user does not exist, thus has no orders."
-            })
-        }
-        const [orders] = await Order.fetchAllByBuyer(user.id);
-        const productList = await Promise.all(orders.map(async (order) => {
-            const [[product]] = await Product.fetchOne(order.productId);
-            return product;
-        }));
-        const orderList = productList.map((p, index) => {
-            return {
-                ...p,
-                orderId: orders[index].id
-            }
-        });
-        return res.status(200).json({
-            orders: JSON.stringify(orderList),
-            profileName: JSON.stringify(user.username),
-        })
-    } catch(err) {
-        console.log(err);
-        throw err;
-    }
-}
 
 // need this for 'My Profile' navigation link at start of app
 exports.getUsername = (req, res, next) => {

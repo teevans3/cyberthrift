@@ -5,8 +5,8 @@ const helpers = require('../util/helpers');
 
 exports.getIndex = async (req, res, next) => {
     try {
-        const [products] = await Product.fetchAll();
-        const [productTypes] = await ProductType.fetchAll();
+        const products = await Product.fetchAll();
+        const productTypes = await ProductType.fetchAll();
         // restructure the products array to include productType name (instead of id);
         const updatedProducts = helpers.updateProductsList(products, productTypes);
 
@@ -23,7 +23,7 @@ exports.getIndex = async (req, res, next) => {
 exports.getProductType = async (req, res, next) => {
     try {
         const products = await helpers.getProductsByType(req.params.productType);
-        const [productTypes] = await ProductType.fetchAll();
+        const productTypes = await ProductType.fetchAll();
         const updatedProducts = helpers.updateProductsList(products, productTypes);
         return res.status(200).json({
             message: `${req.params.productType} successfully fetched!`,
@@ -31,20 +31,26 @@ exports.getProductType = async (req, res, next) => {
         });
     } catch(err) {
         console.log(err);
+        if (err.status === 404) {
+            return res.status(404).json({
+                message: 'This is not a valid product type.'
+            })
+        }
         throw err;
+        
     }
 }
 
 exports.getProduct = async (req, res, next) => {
     try {
-        const [[product]] = await Product.fetchOne(req.params.productId);
+        const product = await Product.fetchOne(req.params.productId);
         if (!product) {
             return res.status(404).json({
                 message: "Product could not be found."
             })
         }
-        const [[seller]] = await User.fetchById(product.sellerId);
-        const [productTypes] = await ProductType.fetchAll();
+        const seller = await User.fetchById(product.sellerId);
+        const productTypes = await ProductType.fetchAll();
 
         return res.status(200).json({
             product: JSON.stringify(product),
